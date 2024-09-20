@@ -32,7 +32,7 @@ const signup = async(req, res) => {
 
     } catch (err) {
         console.error(err);
-        return res.status(400).json({ message : "요청에 실패했습니다." });
+        return res.status(500).json({ message : "요청에 실패했습니다." });
     }
 }
 
@@ -72,7 +72,7 @@ const login = async(req, res) => {
 
     } catch (err) {
         console.error(err);
-        return res.status(400).json({ message: "요청에 실패했습니다." });
+        return res.status(500).json({ message: "요청에 실패했습니다." });
     }
 }
 
@@ -91,7 +91,7 @@ const logout = async(req, res) => {
         return res.status(204).json({ message: "서버에서 정상적인 변경 또는 삭제 처리가 이루어졌지만, 새롭게 보일 정보가 없습니다." });
     } catch (err) {
         console.error(err);
-        return res.status(400).json({ message: "요청에 실패했습니다." });
+        return res.status(500).json({ message: "요청에 실패했습니다." });
     }
 };
 
@@ -118,7 +118,7 @@ const getUser = async (req, res) => {
         })
     } catch (err) {
         console.error(err);
-        return res.status(400).json({ message: "요청에 실패했습니다." });
+        return res.status(500).json({ message: "요청에 실패했습니다." });
     }
 };
 
@@ -144,7 +144,7 @@ const updateUser = async (req, res) => {
         return res.status(200).json({ message: "업데이트에 성공했습니다." });
     } catch (err) {
         console.error(err)
-        return res.status(400).json({ message : "요청에 실패했습니다." })
+        return res.status(500).json({ message : "요청에 실패했습니다." })
     }
 }
 
@@ -168,3 +168,12 @@ const deleteUser = async (req, res) => {
         res.status(500).json({ message: "요청에 실패했습니다"});
     }
 }
+
+module.exports = {
+    signup,
+    login,
+    logout,
+    getUser,
+    updateUser,
+    deleteUser,
+  };
