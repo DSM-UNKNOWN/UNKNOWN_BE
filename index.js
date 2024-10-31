@@ -161,9 +161,13 @@ app.post('/user/login', async (req, res) => {
 
 //유저 정보 불러오기
 app.get('/user/info', async (req, res) => {
+  console.log(req.headers);
+
   const authHeader = req.headers.authorization;
 
   try {
+
+    console.log(authHeader);
 
     if (!authHeader) {
       return res.status(401).json({ message: '토큰이 유효하지 않습니다.' });
@@ -183,6 +187,7 @@ app.get('/user/info', async (req, res) => {
     }
 
     res.status(200).json({ 
+      userid: thisUser.userid,
       name: thisUser.name,
       phone: thisUser.phone,
       connect: thisUser.connect
@@ -199,6 +204,8 @@ app.post('/user/logout', async (req, res) => {
   const authHeader = req.headers.authorization;
 
   try {
+
+    console.log(authHeader);
 
     if(!authHeader) {
       return res.status(401).json({ message: "토큰이 유효하지 않습니다." });
@@ -261,6 +268,8 @@ app.patch('/user', async (req, res) => {
 
 //회원탈퇴
 app.delete('/user', async (req, res) => {
+  console.log(req.headers);
+
   const authHeader = req.headers.authorization;
 
   try {
