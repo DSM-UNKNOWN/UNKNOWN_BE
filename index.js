@@ -11,71 +11,73 @@ const sequelize = new Sequelize(process.env.DB_NAME, process.env.DB_USER, proces
   port: process.env.DB_PORT
 });
 
-//USER MODEL
 const User = sequelize.define('User', {
-  idx: { //고유번호
+  idx: { // 고유번호
     type: DataTypes.INTEGER,
     autoIncrement: true,
     primaryKey: true,
   },
-  userid: { //아이디
+  userid: { // 아이디
     type: DataTypes.STRING,
     unique: true,
+    index: true,  // 인덱스 추가
   },
-  userpw: { //비밀번호
+  userpw: { // 비밀번호
     type: DataTypes.STRING
   },
-  name: { //이름
+  name: { // 이름
     type: DataTypes.STRING
   },
-  state: { //병원 or 구급대원
-    type : DataTypes.STRING
-  },
-  phone: { //전화번호
-    type : DataTypes.STRING
-  },
-  connect: { //소속
+  state: { // 병원 or 구급대원
     type: DataTypes.STRING
   },
-  token: { //토큰
+  phone: { // 전화번호
+    type: DataTypes.STRING,
+    index: true, // 인덱스 추가
+  },
+  connect: { // 소속
+    type: DataTypes.STRING
+  },
+  token: { // 토큰
     type: DataTypes.STRING
   }
 }, {
   timestamps: false
 });
 
-//FEED MODEL
 const Feed = sequelize.define('Feed', {
-  id: { //고유번호
+  id: { // 고유번호
     type: DataTypes.INTEGER,
     autoIncrement: true,
     primaryKey: true,
   },
-  phone: { //구급대원 전화번호
+  phone: { // 구급대원 전화번호
+    type: DataTypes.STRING,
+    index: true, // 인덱스 추가
+  },
+  hospitalSelect: { // 선택한 병원 이름
+    type: DataTypes.STRING,
+    index: true, // 인덱스 추가
+  },
+  hospitalName: { // 환자 이름
     type: DataTypes.STRING,
   },
-  hospitalSelect: { //선택한 병원 이름
+  hospitalMonth: { // 환자 나이
     type: DataTypes.STRING,
   },
-  hospitalName: { //환자 이름
+  hospitalBlood: { // 환자 혈액형
     type: DataTypes.STRING,
   },
-  hospitalMonth: { //환자 나이
-    type : DataTypes.STRING,
-  },
-  hospitalBlood: { //환자 혈액형
-    type : DataTypes.STRING,
-  },
-  hospitalInjury: { //환자 부상 부위
+  hospitalInjury: { // 환자 부상 부위
     type: DataTypes.STRING,
   },
-  hospitalDisease: { //질병 여부
+  hospitalDisease: { // 질병 여부
     type: DataTypes.STRING,
   },
-  hospitalSurgery: { //수술 여부
+  hospitalSurgery: { // 수술 여부
     type: DataTypes.STRING,
   },
-  state: { //병원 측 승인 여부 (승인: confm, 대기: wait)
+  state: { // 병원 측 승인 여부 (승인: confm, 대기: wait)
     type: DataTypes.STRING,
   }
 }, {
@@ -90,8 +92,6 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization'],
 }));
 
-//user
-//회원가입
 app.post('/user/signup', async (req, res) => {
   const { userid, userpw, name, state, phone, connect } = req.body;
 
@@ -105,12 +105,12 @@ app.post('/user/signup', async (req, res) => {
     const hashedPassword = await bcrypt.hash(userpw, 10);
 
     await User.create({ 
-        userid,
-        userpw: hashedPassword,
-        name,
-        state,
-        phone,
-        connect
+      userid,
+      userpw: hashedPassword,
+      name,
+      state,
+      phone,
+      connect
     });
 
     return res.status(201).json("회원가입에 성공했습니다.");
@@ -120,14 +120,13 @@ app.post('/user/signup', async (req, res) => {
   }
 });
 
-//로그인
 app.post('/user/login', async (req, res) => {
   const { userid, userpw } = req.body;
 
   try {
     const thisUser = await User.findOne({ where: { userid } });
 
-    if(!thisUser) {
+    if (!thisUser) {
       return res.status(404).json({ message: "존재하지 않는 아이디입니다." });
     }
 
@@ -159,16 +158,10 @@ app.post('/user/login', async (req, res) => {
   }
 });
 
-//유저 정보 불러오기
 app.get('/user/info', async (req, res) => {
-  console.log(req.headers);
-
   const authHeader = req.headers.authorization;
 
   try {
-
-    console.log(authHeader);
-
     if (!authHeader) {
       return res.status(401).json({ message: '토큰이 유효하지 않습니다.' });
     }
@@ -199,119 +192,19 @@ app.get('/user/info', async (req, res) => {
   }
 });
 
-//로그아웃
-app.post('/user/logout', async (req, res) => {
-  const authHeader = req.headers.authorization;
-
-  try {
-
-    console.log(authHeader);
-
-    if(!authHeader) {
-      return res.status(401).json({ message: "토큰이 유효하지 않습니다." });
-    }
-
-    const token = authHeader.split(' ')[1];
-    const decodedToken = jwt.verify(token, process.env.SECRET);
-    const userid = decodedToken.userid;
-    const thisUser = await User.findOne({ where: { userid } });
-
-    if (!thisUser) {
-      return res.status(404).json({ message: "요청한 페이지를 찾을 수 없습니다." });
-    }
-
-    await thisUser.update({
-      token: null,
-    });
-
-    return res.status(204).json({ message: "서버에서 정상적인 변경 또는 삭제 처리가 이루어졌지만, 새롭게 보일 정보가 없습니다." });
-    
-  } catch (err) {
-    console.log(err);
-    return res.status(400).json({ message: "요청에 실패했습니다." });
-  }
-});
-
-//유저 정보 수정
-app.patch('/user', async (req, res) => {
-  const authHeader = req.headers.authorization;
-  const { name, phone, connect } = req.body;
-
-  try {
-
-    if(!authHeader) {
-      return res.status(401).json({ message: "토큰이 유효하지 않습니다." });
-    }
-
-    const token = authHeader.split(' ')[1];
-    const decodedToken = jwt.verify(token, process.env.SECRET);
-    const userid = decodedToken.userid;
-    const thisUser = await User.findOne({ where: { userid } });
-
-    if (!thisUser) {
-      return res.status(404).json({ message: "요청한 페이지를 찾을 수 없습니다." });
-    }
-
-    await thisUser.update({
-      name,
-      phone,
-      connect,
-    });
-
-    return res.status(204).json({ message: "요청에 성공했습니다." });
-    
-  } catch (err) {
-    console.log(err);
-    return res.status(400).json({ message: "요청에 실패했습니다." });
-  }
-});
-
-//회원탈퇴
-app.delete('/user', async (req, res) => {
-  console.log(req.headers);
-
-  const authHeader = req.headers.authorization;
-
-  try {
-
-    if(!authHeader) {
-      return res.status(401).json({ message: "토큰이 유효하지 않습니다." });
-    }
-
-    const token = authHeader.split(' ')[1];
-    const decodedToken = jwt.verify(token, process.env.SECRET);
-    const userid = decodedToken.userid;
-    const thisUser = await User.findOne({ where: { userid } });
-
-    if (!thisUser) {
-      return res.status(404).json({ message: "요청한 페이지를 찾을 수 없습니다." });
-    }
-
-    await thisUser.destroy({
-      where: { userid: thisUser.userid },
-    });
-
-    return res.status(204).json({ message: "서버에서 정상적인 변경 또는 삭제 처리가 이루어졌지만, 새롭게 보일 정보가 없습니다." });
-
-  } catch (err) {
-    console.log(err);
-    return res.status(400).json({ message: "요청에 실패했습니다." });
-  }
-});
-
-//feed
-//목록 불러오기
 app.get('/feed', async (req, res) => {
   const authHeader = req.headers.authorization;
-
+  const { page = 1, limit = 10 } = req.query;
+  
   try {
-    if(!authHeader) {
+    if (!authHeader) {
       return res.status(401).json({ message: "토큰이 유효하지 않습니다." });
     }
 
     const token = authHeader.split(' ')[1];
     const decodedToken = jwt.verify(token, process.env.SECRET);
     const userid = decodedToken.userid;
+
     const thisUser = await User.findOne({ where: { userid } });
 
     if (!thisUser) {
@@ -320,7 +213,11 @@ app.get('/feed', async (req, res) => {
 
     const hospitalSelect = thisUser.connect;
 
-    const data = await Feed.findAll({ where: { hospitalSelect } });
+    const data = await Feed.findAll({
+      where: { hospitalSelect },
+      offset: (page - 1) * limit,
+      limit: limit,
+    });
 
     return res.status(200).json(data);
   } catch (err) {
@@ -329,20 +226,19 @@ app.get('/feed', async (req, res) => {
   }
 });
 
-//상태 수정하기
 app.patch('/feed', async (req, res) => {
   const authHeader = req.headers.authorization;
   const { id, state } = req.body;
 
   try {
-
-    if(!authHeader) {
+    if (!authHeader) {
       return res.status(401).json({ message: "토큰이 유효하지 않습니다." });
     }
 
     const token = authHeader.split(' ')[1];
     const decodedToken = jwt.verify(token, process.env.SECRET);
     const userid = decodedToken.userid;
+
     const thisUser = await User.findOne({ where: { userid } });
 
     if (!thisUser) {
@@ -362,20 +258,19 @@ app.patch('/feed', async (req, res) => {
   }
 });
 
-//정보 등록하기
 app.post('/feed/post', async (req, res) => {
   const authHeader = req.headers.authorization;
   const { phone, hospitalSelect, hospitalName, hospitalMonth, hospitalBlood, hospitalInjury, hospitalDisease, hospitalSurgery } = req.body;
 
   try {
-
-    if(!authHeader) {
+    if (!authHeader) {
       return res.status(401).json({ message: "토큰이 유효하지 않습니다." });
     }
 
     const token = authHeader.split(' ')[1];
     const decodedToken = jwt.verify(token, process.env.SECRET);
     const userid = decodedToken.userid;
+
     const thisUser = await User.findOne({ where: { userid } });
 
     if (!thisUser) {
